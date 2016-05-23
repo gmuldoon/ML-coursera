@@ -1,0 +1,90 @@
+---
+title: "Exercise Quality"
+author: "Gail Muldoon"
+date: "May 4, 2016"
+output: html_document
+---
+##Summary
+Predictions of exercise quality are determined from various sources of accelerometer data. Two prediction algorithms are compared: a random forest and gradient boosting machine. The random forest is found to be most accurate and have the correspondingly lowest out-of-sample error on a validation dataset. 
+
+##Background
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
+
+##Data 
+The training data for this project are available here:
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+
+The test data are available here:
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+The data for this project come from this source: http://groupware.les.inf.puc-rio.br/har. If you use the document you create for this class for any purpose please cite them as they have been very generous in allowing their data to be used for this kind of assignment.
+
+##Load and Clean Data
+```{r,message=FALSE,warning=FALSE,results=FALSE}
+library(caret)
+library(randomForest)
+
+#Read in data, putting NAs in empty strings
+training = read.csv("pml-training.csv", na.strings = c("NA", ""))
+testing = read.csv("pml-testing.csv", na.strings = c("NA", ""))
+
+#Create a validation set from 20% of the training set.
+set.seed(100) 
+inTrain = createDataPartition(training$classe, p = 0.5, list = FALSE)
+training = training[inTrain, ]
+validating = training[-inTrain, ]
+
+#Get rid of predictors that have NAs because that won't be useful
+training = training[, colSums(is.na(training)) == 0]
+validatiing = validating[, colSums(is.na(validating)) == 0]
+testing = testing[, colSums(is.na(testing)) == 0]
+
+#Get rid of non-acceleromator columns like name, timestamps, etc. because they're not predictors
+trainClean =  training[, -c(1:7)]
+validClean = validating[, -c(1:7)]
+testClean = testing[, -c(1:7)]
+```
+
+##Prediction Models
+I test two prediction models, random forests and gradient boosting machine, for comparison to see which has the highest accuracy and lowest out-of-sample error rate.
+
+#### Random Forest
+I construct a random forest using all the non-NA accelerometer data in the training set. I then predict the classe variable, the manner in which the subect did the exercise (correctly or incorrectly) using the validation data set. I then output the accuracy and out-of-sample error rate of this method. 
+```{r,message=FALSE,warning=FALSE,results=FALSE}
+#use k=10 folds for cross-validating
+control = trainControl(method = "cv", number = 5)
+rfMod = train(classe ~ ., data = trainClean, method = "rf")
+rfPredict = predict(rfMod,validClean)
+rfConfusion = confusionMatrix(validClean$classe, rfPredict)
+
+#Accuracy
+rfAccuracy = rfConfusion$overall[1]
+
+#Out of sample error
+rfError = 1 - rfConfusion$overall[1]
+```
+The accuracy of the random forest method is an incredible 99.9% leaving the error rate at less than 0.1%. This is likely to most accurate method already.
+
+#### Gradient Boosting Machine
+As an alternative method, I use GBM to predict classe. 
+```{r,message=FALSE,warning=FALSE,results=FALSE}
+gbmMod = train(classe ~ ., data=trainClean, method = "gbm", trControl = control,verbose=FALSE)
+gbmPredict = predict(gbmMod,validClean)
+gbmConfusion = confusionMatrix(validClean$classe, gbmPredict)
+
+#Accuracy
+gbmAccuracy = gbmConfusion$overall[1]
+
+#Out of sample error
+gbmError = 1 - gbmConfusion$overall[1]
+```
+The accuracy and corresponding expected out-of-sample error rate are 97% and 3%, respectively. While still highly accurate, the random forest is a more accurate algorithm for this case so I will use it to make predictions of the test set.
+
+##  Prediction of classe in test set
+The most accurate algorithm is random forest, with an accuracy of ~99%. I therefore use it to do the final prediction of classe on the test set. 
+```{r}
+(predict(rfMod, testClean))
+```
+This predictive method is 100% accurate on this test set. 
