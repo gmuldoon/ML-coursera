@@ -22,7 +22,7 @@ https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
 The data for this project come from this source: http://groupware.les.inf.puc-rio.br/har. If you use the document you create for this class for any purpose please cite them as they have been very generous in allowing their data to be used for this kind of assignment.
 
 ##Load and Clean Data
-```{r,message=FALSE,warning=FALSE,results=FALSE}
+```{r,message=FALSE,warning=FALSE,results='hide'}
 library(caret)
 library(randomForest)
 
@@ -52,7 +52,7 @@ I test two prediction models, random forests and gradient boosting machine, for 
 
 #### Random Forest
 I construct a random forest using all the non-NA accelerometer data in the training set. I then predict the classe variable, the manner in which the subect did the exercise (correctly or incorrectly) using the validation data set. I then output the accuracy and out-of-sample error rate of this method. 
-```{r,message=FALSE,warning=FALSE,results=FALSE}
+```{r,message=FALSE,warning=FALSE,results='hide'}
 #use k=10 folds for cross-validating
 control = trainControl(method = "cv", number = 5)
 rfMod = train(classe ~ ., data = trainClean, method = "rf")
@@ -69,8 +69,8 @@ The accuracy of the random forest method is an incredible 99.9% leaving the erro
 
 #### Gradient Boosting Machine
 As an alternative method, I use GBM to predict classe. 
-```{r,message=FALSE,warning=FALSE,results=FALSE}
-gbmMod = train(classe ~ ., data=trainClean, method = "gbm", trControl = control,verbose=FALSE)
+```{r,message=FALSE,warning=FALSE,results='hide'}
+gbmMod = train(classe ~ ., data=trainClean, method = "gbm")
 gbmPredict = predict(gbmMod,validClean)
 gbmConfusion = confusionMatrix(validClean$classe, gbmPredict)
 
